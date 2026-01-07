@@ -23,7 +23,7 @@ from rest_framework_simplejwt.views import(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-     path('', include('chess_python.urls')),
+     path('api/', include('chess_python.urls')),
 
      #jwt endpoints
      path('api/token/',TokenObtainPairView.as_view(),name='token_obtain_pair'),
