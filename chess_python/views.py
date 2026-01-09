@@ -8,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.core.mail import send_mail
 from .models import PasswordResetOTP
+from datetime import timedelta
+from django.utils import timezone
 
 # Profile API (protected)
 @api_view(['GET'])
@@ -69,20 +71,31 @@ def forgot_password(request):
     return Response({'message':'OTP sent to email'})
 
 #verify OTP
+
 @api_view(['POST'])
 def verify_otp(request):
-    email=request.data.get('email')
-    otp=request.data.get('otp')
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+
+    if not email or not otp:
+        return Response({'error': 'Email and OTP are required'}, status=400)
 
     try:
-        user = User.objects.gt(email=email)
-        otp_obj=PasswordResetOTP.objects.filter(user=user, otp=otp).last()
-    except:
-        return Response({'error':'Invalid OTP'}, status=400)
-    
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'Invalid OTP'}, status=400)
+
+    otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp).last()
+
     if not otp_obj:
-        return Response({'error':'Invalid OTP'},status=400),
-    return Response ({'message':'OTP verified'})
+        return Response({'error': 'Invalid OTP'}, status=400)
+
+    # Check if OTP is expired
+    if otp_obj.created_at + timedelta(minutes=5) < timezone.now():
+        return Response({'error': 'OTP expired'}, status=400)
+
+    return Response({'message': 'OTP verified'})
+
 
 #Reset Password
 @api_view(['POST'])
