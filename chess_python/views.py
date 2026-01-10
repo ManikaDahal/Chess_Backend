@@ -26,24 +26,30 @@ def profile(request):
 def signup(request):
     username = request.data.get('username')
     password = request.data.get('password')
-    email = request.data.get('email', '')
+    email = request.data.get('email')
 
-    if not username or not password:
-        return Response({'error':'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-    
+    if not username or not password or not email:
+        return Response({'error': 'All fields are required'}, status=400)
+
     if User.objects.filter(username=username).exists():
-        return Response({'error':'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Create user
-    user = User.objects.create_user(username=username, password=password, email=email)
+        return Response({'error': 'Username already exists'}, status=400)
 
-    # Create JWT tokens
+ 
+    if User.objects.filter(email=email).exists():
+        return Response({'error': 'Email already registered'}, status=400)
+
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+        email=email
+    )
+
     refresh = RefreshToken.for_user(user)
 
     return Response({
         'refresh': str(refresh),
         'access': str(refresh.access_token)
-    }, status=status.HTTP_201_CREATED)
+    }, status=201)
 
 
 
@@ -52,26 +58,29 @@ def signup(request):
 def forgot_password(request):
     email = request.data.get('email')
 
+    if not email:
+        return Response({'error': 'Email is required'}, status=400)
+
     try:
-        user =User.objects.get(email=email)
+        user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({'error':'User not found.'},status=404)
-    
-    otp=str(random.randint(100000,999999))
-    PasswordResetOTP.objects.create(user=user,otp=otp)
-    
+        return Response({'error': 'User not found'}, status=404)
+
+    otp = str(random.randint(100000, 999999))
+
+    PasswordResetOTP.objects.create(user=user, otp=otp)
+
     send_mail(
         'Password Reset OTP',
-        f'Your OTP is{otp}',
+        f'Your OTP is {otp}',
         'noreply@chessapp.com',
         [email],
     )
-    
 
-    return Response({'message':'OTP sent to email'})
+    return Response({'message': 'OTP sent to email'}, status=200)
+
 
 #verify OTP
-
 @api_view(['POST'])
 def verify_otp(request):
     email = request.data.get('email')
@@ -83,29 +92,50 @@ def verify_otp(request):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({'error': 'Invalid OTP'}, status=400)
+        return Response({'error': 'Invalid email'}, status=400)
 
     otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp).last()
 
     if not otp_obj:
         return Response({'error': 'Invalid OTP'}, status=400)
 
-    # Check if OTP is expired
     if otp_obj.created_at + timedelta(minutes=5) < timezone.now():
         return Response({'error': 'OTP expired'}, status=400)
 
-    return Response({'message': 'OTP verified'})
+    return Response({'message': 'OTP verified'}, status=200)
+
 
 
 #Reset Password
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status
+
 @api_view(['POST'])
 def reset_password(request):
-    email=request.data.get('email')
-    password=request.data.get('password')
+    email = request.data.get('email')
+    password = request.data.get('password')
 
-    user =User.objects.get(email=email)
+    if not email or not password:
+        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    
     user.set_password(password)
     user.save()
 
     PasswordResetOTP.objects.filter(user=user).delete()
-    return Response({'meessage':'Password reset successful'})
+
+    
+    refresh = RefreshToken.for_user(user)
+    access = str(refresh.access_token)
+
+    
+    return Response({
+        'message': 'Password reset successful',
+        'access': access,
+        'refresh': str(refresh)
+    }, status=status.HTTP_200_OK)
