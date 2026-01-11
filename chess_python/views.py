@@ -3,13 +3,21 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.core.mail import send_mail
 from .models import PasswordResetOTP
 from datetime import timedelta
 from django.utils import timezone
+from twilio.rest import Client
+import os
+from .utils import send_sms
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+
+
+
 
 # Profile API (protected)
 @api_view(['GET'])
@@ -57,12 +65,16 @@ def signup(request):
 @api_view(['POST'])
 def forgot_password(request):
     email = request.data.get('email')
+    phone = request.data.get('phone')
 
-    if not email:
-        return Response({'error': 'Email is required'}, status=400)
+    if not email and not phone:
+        return Response({'error': 'Email or Phone is required'}, status=400)
 
     try:
-        user = User.objects.get(email=email)
+        if email:
+            user = User.objects.get(email=email)
+        else:
+            user = User.objects.get(phone=phone)
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=404)
 
@@ -70,14 +82,18 @@ def forgot_password(request):
 
     PasswordResetOTP.objects.create(user=user, otp=otp)
 
-    send_mail(
-        'Password Reset OTP',
-        f'Your OTP is {otp}',
-        'noreply@chessapp.com',
-        [email],
-    )
+    if email:
+        send_mail(
+            'Password Reset OTP',
+            f'Your OTP is {otp}',
+            'noreply@chessapp.com',
+            [email],
+        )
 
-    return Response({'message': 'OTP sent to email'}, status=200)
+    if phone:
+        send_sms(phone, f'Your OTP is {otp}')
+
+    return Response({'message': 'OTP sent successfully'}, status=200)
 
 
 #verify OTP
