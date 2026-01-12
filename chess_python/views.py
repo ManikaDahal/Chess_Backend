@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
@@ -9,17 +9,14 @@ from django.core.mail import send_mail
 from .models import PasswordResetOTP
 from datetime import timedelta
 from django.utils import timezone
-from twilio.rest import Client
-import os
 from .utils import send_sms
 from django.contrib.auth import get_user_model
+from .serializers import SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer
+from drf_yasg.utils import swagger_auto_schema
 User = get_user_model()
 
 
-
-
-
-# Profile API (protected)
+# PROFILE (Protected)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request):
@@ -29,28 +26,25 @@ def profile(request):
     })
 
 
-# Signup API
+#SIGNUP
+@swagger_auto_schema(method='post',request_body=SignupSerializer)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def signup(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    email = request.data.get('email')
+    serializer = SignupSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-    if not username or not password or not email:
-        return Response({'error': 'All fields are required'}, status=400)
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
+    email = serializer.validated_data['email']
 
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Username already exists'}, status=400)
 
- 
     if User.objects.filter(email=email).exists():
         return Response({'error': 'Email already registered'}, status=400)
 
-    user = User.objects.create_user(
-        username=username,
-        password=password,
-        email=email
-    )
+    user = User.objects.create_user(username=username, password=password, email=email)
 
     refresh = RefreshToken.for_user(user)
 
@@ -60,26 +54,23 @@ def signup(request):
     }, status=201)
 
 
-
-#Forgot Password
+#FORGOT PASSWORD
+@swagger_auto_schema(method='post',request_body=ForgotPasswordSerializer)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def forgot_password(request):
-    email = request.data.get('email')
-    phone = request.data.get('phone')
+    serializer = ForgotPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-    if not email and not phone:
-        return Response({'error': 'Email or Phone is required'}, status=400)
+    email = serializer.validated_data.get('email')
+    phone = serializer.validated_data.get('phone')
 
     try:
-        if email:
-            user = User.objects.get(email=email)
-        else:
-            user = User.objects.get(phone=phone)
+        user = User.objects.get(email=email) if email else User.objects.get(phone=phone)
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=404)
 
     otp = str(random.randint(100000, 999999))
-
     PasswordResetOTP.objects.create(user=user, otp=otp)
 
     if email:
@@ -89,29 +80,30 @@ def forgot_password(request):
             'noreply@chessapp.com',
             [email],
         )
-
     if phone:
         send_sms(phone, f'Your OTP is {otp}')
 
     return Response({'message': 'OTP sent successfully'}, status=200)
 
 
-#verify OTP
+#VERIFY OTP
+@swagger_auto_schema(method='post',request_body=VerifyOTPSerializer)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def verify_otp(request):
-    email = request.data.get('email')
-    otp = request.data.get('otp')
+    serializer = VerifyOTPSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-    if not email or not otp:
-        return Response({'error': 'Email and OTP are required'}, status=400)
+    email = serializer.validated_data.get('email')
+    phone = serializer.validated_data.get('phone')
+    otp = serializer.validated_data['otp']
 
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.get(email=email) if email else User.objects.get(phone=phone)
     except User.DoesNotExist:
-        return Response({'error': 'Invalid email'}, status=400)
+        return Response({'error': 'User not found'}, status=404)
 
     otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp).last()
-
     if not otp_obj:
         return Response({'error': 'Invalid OTP'}, status=400)
 
@@ -121,37 +113,36 @@ def verify_otp(request):
     return Response({'message': 'OTP verified'}, status=200)
 
 
-
-#Reset Password
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import status
-
+#RESET PASSWORD 
+@swagger_auto_schema(method='post',request_body=ResetPasswordSerializer)
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def reset_password(request):
-    email = request.data.get('email')
-    password = request.data.get('password')
+    serializer = ResetPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-    if not email or not password:
-        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+    email = serializer.validated_data.get('email')
+    phone = serializer.validated_data.get('phone')
+    otp = serializer.validated_data['otp']
+    new_password = serializer.validated_data['new_password']
 
     try:
-        user = User.objects.get(email=email)
+        user = User.objects.get(email=email) if email else User.objects.get(phone=phone)
     except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'User not found'}, status=404)
 
-    
-    user.set_password(password)
+    otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp).last()
+    if not otp_obj or otp_obj.created_at + timedelta(minutes=5) < timezone.now():
+        return Response({'error': 'Invalid or expired OTP'}, status=400)
+
+    user.set_password(new_password)
     user.save()
-
     PasswordResetOTP.objects.filter(user=user).delete()
 
-    
     refresh = RefreshToken.for_user(user)
-    access = str(refresh.access_token)
 
-    
     return Response({
         'message': 'Password reset successful',
-        'access': access,
+        'access': str(refresh.access_token),
         'refresh': str(refresh)
-    }, status=status.HTTP_200_OK)
+    }, status=200)

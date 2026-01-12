@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'chess_python',
     'rest_framework',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -144,3 +145,15 @@ TWILIO_AUTH_TOKEN="53ecda912d068cb5444fd8dac9dc8c89"
 TWILIO_PHONE="+17659815977"
 
 AUTH_USER_MODEL = "chess_python.CustomUser"
+
+
+SWAGGER_SETTINGS={
+    'SECURITY_DEFINITIONS':{
+        'Bearer':{
+            'type':'apiKey',
+            'name':'Authorization',
+            'in':'header'
+        }
+    },
+    'USE_SESSION_AUTH':False,
+}
