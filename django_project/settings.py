@@ -34,6 +34,8 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,6 +45,8 @@ INSTALLED_APPS = [
     'chess_python',
     'rest_framework',
     'drf_yasg',
+    'channels',
+    'call',
 ]
 
 MIDDLEWARE = [
@@ -162,4 +166,12 @@ SWAGGER_SETTINGS={
         }
     },
     'USE_SESSION_AUTH':False,
+}
+
+ASGI_APPLICATION = "django_project.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
 }

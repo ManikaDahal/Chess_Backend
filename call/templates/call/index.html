@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Audio Call Room</title>
+</head>
+<body>
+    <h1>Audio Call Room</h1>
+    <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
+    <input id="room-name-input" type="text" size="100" placeholder="Enter Room Name"><br>
+    <input id="room-name-submit" type="button" value="Enter Room">
+    <br><br>
+    <button id="call-btn" style="display:none;">Start Call</button>
+    <audio id="remote-audio" autoplay></audio>
+
+    <script>
+        let roomName;
+        let chatSocket;
+        let localStream;
+        let peerConnection;
+        const config = {
+            'iceServers': [
+                { 'urls': 'stun:stun.l.google.com:19302' }
+            ]
+        };
+
+        const roomInput = document.getElementById('room-name-input');
+        const roomSubmit = document.getElementById('room-name-submit');
+        const callBtn = document.getElementById('call-btn');
+        const remoteAudio = document.getElementById('remote-audio');
+
+        roomSubmit.onclick = function(e) {
+            roomName = roomInput.value;
+            if (!roomName) return;
+
+            chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/call/' + roomName + '/'
+            );
+
+            chatSocket.onmessage = async function(e) {
+                const data = JSON.parse(e.data);
+                console.log('Received:', data);
+                
+                if (data.type === 'call_offer') {
+                    await handleOffer(data.offer);
+                } else if (data.type === 'call_answer') {
+                    await handleAnswer(data.answer);
+                } else if (data.type === 'new_ice_candidate') {
+                    await handleCandidate(data.candidate);
+                }
+            };
+
+            chatSocket.onopen = function(e) {
+                console.log('WebSocket connected');
+                callBtn.style.display = 'block';
+                startLocalStream(); 
+            };
+            
+            chatSocket.onclose = function(e) {
+                 console.error('Chat socket closed unexpectedly');
+            };
+        };
+
+        callBtn.onclick = async function() {
+            peerConnection = createPeerConnection();
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            chatSocket.send(JSON.stringify({
+                'type': 'call_offer',
+                'offer': offer
+            }));
+        };
+
+        async function startLocalStream() {
+             try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                console.log('Local stream acquired');
+            } catch (e) {
+                console.error('Error getting user media:', e);
+            }
+        }
+
+        function createPeerConnection() {
+            const pc = new RTCPeerConnection(config);
+
+            pc.onicecandidate = function(event) {
+                if (event.candidate) {
+                    chatSocket.send(JSON.stringify({
+                        'type': 'new_ice_candidate',
+                        'candidate': event.candidate
+                    }));
+                }
+            };
+
+            pc.ontrack = function(event) {
+                console.log('Remote track received');
+                remoteAudio.srcObject = event.streams[0];
+            };
+
+            return pc;
+        }
+
+        async function handleOffer(offer) {
+            if (!peerConnection) {
+                 peerConnection = createPeerConnection();
+                 localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            chatSocket.send(JSON.stringify({
+                'type': 'call_answer',
+                'answer': answer
+            }));
+        }
+
+        async function handleAnswer(answer) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+
+        async function handleCandidate(candidate) {
+             if (peerConnection) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+             }
+        }
+
+    </script>
+</body>
+</html>
