@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "django_project/wsgi.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": { "runtime": "python3.12" }
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "django_project/wsgi.py" }
+    { "src": "/(.*)", "dest": "api/index.py" }
   ]
 }

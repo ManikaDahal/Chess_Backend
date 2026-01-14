@@ -30,6 +30,10 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://uncoddled-charita-nonlymphatic.ngrok-free.dev",
+]
+
 
 # Application definition
 
