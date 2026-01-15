@@ -19,6 +19,11 @@ from django.urls import path, re_path,include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse("Chess Backend is running successfully ")
+
 from rest_framework_simplejwt.views import(
     TokenObtainPairView,
     TokenRefreshView,
@@ -38,6 +43,7 @@ schema_view=get_schema_view(
 )
 
 urlpatterns = [
+     path('', home),
     path('admin/', admin.site.urls),
      path('api/', include('chess_python.urls')),
      path('call/', include('call.urls')),
