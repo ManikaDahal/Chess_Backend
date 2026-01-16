@@ -34,6 +34,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://uncoddled-charita-nonlymphatic.ngrok-free.dev",
 ]
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 
 # Application definition
 
@@ -50,6 +53,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'channels',
     'call',
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -130,7 +134,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 
 

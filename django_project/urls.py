@@ -48,7 +48,9 @@ urlpatterns = [
      path('api/', include('chess_python.urls')),
      path('call/', include('call.urls')),
 
+     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
      re_path(r'^swagger/$',schema_view.with_ui('swagger',cache_timeout=0),name='swagger'),
+     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
      #jwt endpoints
      path('api/token/',TokenObtainPairView.as_view(),name='token_obtain_pair'),

@@ -146,3 +146,19 @@ def reset_password(request):
         'access': str(refresh.access_token),
         'refresh': str(refresh)
     }, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_users(request):
+    # Retrieve all users except the current user
+    users = User.objects.exclude(id=request.user.id)
+    user_list = [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }
+        for user in users
+    ]
+    return Response(user_list, status=200)
