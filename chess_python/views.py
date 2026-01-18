@@ -20,7 +20,10 @@ User = get_user_model()
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request):
+    # CHANGE: Added 'id' field to enable user-specific signaling rooms
+    # Each user will connect to their own room: user_{id}
     return Response({
+        "id": request.user.id,
         "username": request.user.username,
         "email": request.user.email
     })
