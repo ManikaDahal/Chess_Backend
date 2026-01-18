@@ -150,12 +150,14 @@ SIMPLE_JWT={
     'AUTH_HEADER_TYPES':('Bearer',),
 }
 
-EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST='smtp.gmail.com'
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER='manikadahal8@gmail.com'
-EMAIL_HOST_PASSWORD='hjns loyc dwwq rskv'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASS")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@chessapp.com")
+
 
 TWILIO_SID="AC3b0cc9dcfd715105249387a53d4e9045"
 TWILIO_AUTH_TOKEN="53ecda912d068cb5444fd8dac9dc8c89"

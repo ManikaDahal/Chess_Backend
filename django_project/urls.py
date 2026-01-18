@@ -43,16 +43,14 @@ schema_view=get_schema_view(
 )
 
 urlpatterns = [
-     path('', home),
     path('admin/', admin.site.urls),
-     path('api/', include('chess_python.urls')),
-     path('call/', include('call.urls')),
-
-     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-     re_path(r'^swagger/$',schema_view.with_ui('swagger',cache_timeout=0),name='swagger'),
-     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-
-     #jwt endpoints
-     path('api/token/',TokenObtainPairView.as_view(),name='token_obtain_pair'),
-     path('api/token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
+    path('api/', include('chess_python.urls')),
+    path('api/token/', TokenObtainPairView.as_as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # CHANGE: Added Swagger documentation URLs
+    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('api/schema/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
+
