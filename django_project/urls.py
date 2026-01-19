@@ -43,6 +43,7 @@ schema_view=get_schema_view(
 )
 
 urlpatterns = [
+    path('', home, name='home'),
     path('admin/', admin.site.urls),
     path('api/', include('chess_python.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
