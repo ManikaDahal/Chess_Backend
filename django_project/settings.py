@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +32,8 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://chess-backend-ochre.vercel.app",
+    "https://chess-websocket-dor6.onrender.com",
     "https://uncoddled-charita-nonlymphatic.ngrok-free.dev",
 ]
 
@@ -90,12 +93,34 @@ WSGI_APPLICATION = 'django_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
+# CHANGE: Use PostgreSQL in production (via DATABASE_URL), SQLite for local development
+# For Vercel deployment, set DATABASE_URL environment variable to your PostgreSQL connection string
+if os.environ.get('DATABASE_URL'):
+    # Production: Use PostgreSQL from DATABASE_URL environment variable
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    # Local development: Use SQLite
+   DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql', 
+        'NAME': 'neondb',
+        'USER': 'neondb_owner',
+        'PASSWORD': 'npg_hl4UapeNS9xk',
+        'HOST': 'ep-round-hall-a10d3q1j-pooler.ap-southeast-1.aws.neon.tech',
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
+
+
 
 
 # Password validation
@@ -159,9 +184,10 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASS")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@chessapp.com")
 
 
-TWILIO_SID="AC3b0cc9dcfd715105249387a53d4e9045"
-TWILIO_AUTH_TOKEN="53ecda912d068cb5444fd8dac9dc8c89"
-TWILIO_PHONE="+17659815977"
+# CHANGE: Moved Twilio credentials to environment variables for security
+TWILIO_SID = os.environ.get("TWILIO_SID", "AC3b0cc9dcfd715105249387a53d4e9045")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "53ecda912d068cb5444fd8dac9dc8c89")
+TWILIO_PHONE = os.environ.get("TWILIO_PHONE", "+17659815977")
 
 AUTH_USER_MODEL = "chess_python.CustomUser"
 
