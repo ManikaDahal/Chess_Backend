@@ -45,7 +45,7 @@ schema_view=get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('chess_python.urls')),
-    path('api/token/', TokenObtainPairView.as_as_view(), name='token_obtain_pair'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # CHANGE: Added Swagger documentation URLs
