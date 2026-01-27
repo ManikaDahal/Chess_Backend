@@ -176,9 +176,11 @@ def register_fcm_token(request):
     token = serializer.validated_data['token']
     
     # Update or create FCM token for the user
+    print(f"FCM: Registering token for user {request.user.username} (ID: {request.user.id})")
     fcm_token, created = FCMToken.objects.update_or_create(
         token=token,
         defaults={'user': request.user}
     )
+    print(f"FCM: Token {'created' if created else 'updated'} for user {request.user.username}")
     
     return Response({"message": "FCM token registered successfully"}, status=200)
