@@ -6,12 +6,12 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.core.mail import send_mail
-from .models import PasswordResetOTP
+from .models import PasswordResetOTP, FCMToken
 from datetime import timedelta
 from django.utils import timezone
 from .utils import send_sms
 from django.contrib.auth import get_user_model
-from .serializers import SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer
+from .serializers import SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer, FCMTokenSerializer
 from drf_yasg.utils import swagger_auto_schema
 User = get_user_model()
 
@@ -165,3 +165,20 @@ def list_users(request):
         for user in users
     ]
     return Response(user_list, status=200)
+
+@swagger_auto_schema(method='post', request_body=FCMTokenSerializer)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def register_fcm_token(request):
+    serializer = FCMTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    
+    token = serializer.validated_data['token']
+    
+    # Update or create FCM token for the user
+    fcm_token, created = FCMToken.objects.update_or_create(
+        token=token,
+        defaults={'user': request.user}
+    )
+    
+    return Response({"message": "FCM token registered successfully"}, status=200)

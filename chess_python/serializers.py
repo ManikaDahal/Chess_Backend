@@ -31,3 +31,6 @@ class ResetPasswordSerializer(serializers.Serializer):
      phone = serializers.CharField(required=False)
      otp = serializers.CharField()
      new_password=serializers.CharField()
+
+class FCMTokenSerializer(serializers.Serializer):
+    token = serializers.CharField()

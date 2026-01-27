@@ -10,6 +10,7 @@ urlpatterns=[
     path('reset-password/',reset_password),
     path('verify-otp/',verify_otp),
     path('users/', views.list_users),
+    path('register-fcm-token/', views.register_fcm_token),
 
   
    
