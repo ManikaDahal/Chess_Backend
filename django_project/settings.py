@@ -15,6 +15,9 @@ from datetime import timedelta
 import os
 import dj_database_url
 
+# Detect if running on Vercel
+IS_VERCEL = "VERCEL" in os.environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,7 +47,6 @@ USE_X_FORWARDED_HOST = True
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,10 +56,14 @@ INSTALLED_APPS = [
     'chess_python',
     'rest_framework',
     'drf_yasg',
-    'channels',
     'call',
     'rest_framework_simplejwt',
 ]
+
+# Only add WebSocket apps if NOT on Vercel
+if not IS_VERCEL:
+    INSTALLED_APPS.insert(0, 'daphne')
+    INSTALLED_APPS.append('channels')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -203,10 +209,12 @@ SWAGGER_SETTINGS={
     'USE_SESSION_AUTH':False,
 }
 
-ASGI_APPLICATION = "django_project.asgi.application"
+# Skip ASGI on Vercel
+if not IS_VERCEL:
+    ASGI_APPLICATION = "django_project.asgi.application"
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
     }
-}
