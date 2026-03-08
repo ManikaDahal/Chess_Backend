@@ -5,8 +5,14 @@ class EmailBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         UserModel = get_user_model()
         
-        # Determine the identifier (it could be passed as 'username' or the custom USERNAME_FIELD 'email')
-        identifier = username or kwargs.get(UserModel.USERNAME_FIELD) or kwargs.get('username')
+        # Determine the identifier. It could be in 'username', 'email', or 
+        # the model's USERNAME_FIELD keyword argument.
+        identifier = (
+            username or 
+            kwargs.get('email') or 
+            kwargs.get('username') or 
+            kwargs.get(UserModel.USERNAME_FIELD)
+        )
         
         if identifier:
             # Try to find the user by email first
