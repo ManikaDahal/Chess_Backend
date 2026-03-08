@@ -16,17 +16,17 @@ class EmailBackend(ModelBackend):
         
         if identifier:
             # Try to find the user by email first
+            users = UserModel.objects.filter(email=identifier)
+            for user in users:
+                if user.check_password(password) and self.user_can_authenticate(user):
+                    return user
+            
+            # If not found by email, try by username
             try:
-                user = UserModel.objects.get(email=identifier)
+                user = UserModel.objects.get(username=identifier)
                 if user.check_password(password) and self.user_can_authenticate(user):
                     return user
             except UserModel.DoesNotExist:
-                # If not found by email, try by username
-                try:
-                    user = UserModel.objects.get(username=identifier)
-                    if user.check_password(password) and self.user_can_authenticate(user):
-                        return user
-                except UserModel.DoesNotExist:
-                    pass
+                pass
         
         return None
