@@ -1,0 +1,12 @@
+{
+    "python.defaultInterpreterPath": "c:\\Users\\User\\Desktop\\Chess_Backend\\.venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "c:\\Users\\User\\Desktop\\Chess_Backend\\.venv\\Lib\\site-packages",
+        "./api",
+        "./chess_python",
+        "./django_project"
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.typeCheckingMode": "off"
+}

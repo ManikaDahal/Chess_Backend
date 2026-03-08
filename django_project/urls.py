@@ -24,8 +24,8 @@ from django.http import HttpResponse
 def home(request):
     return HttpResponse("Chess Backend is running successfully ")
 
-from rest_framework_simplejwt.views import(
-    TokenObtainPairView,
+from chess_python.views import EmailTokenObtainPairView
+from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
@@ -46,7 +46,7 @@ urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
     path('api/', include('chess_python.urls')),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # CHANGE: Added Swagger documentation URLs

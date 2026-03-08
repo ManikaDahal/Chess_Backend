@@ -32,5 +32,10 @@ class ResetPasswordSerializer(serializers.Serializer):
      otp = serializers.CharField()
      new_password=serializers.CharField()
 
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 class FCMTokenSerializer(serializers.Serializer):
     token = serializers.CharField()
+
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'

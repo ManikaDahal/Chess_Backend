@@ -10,9 +10,13 @@ from .models import PasswordResetOTP, FCMToken
 from datetime import timedelta
 from django.utils import timezone
 from .utils import send_sms
-from django.contrib.auth import get_user_model
-from .serializers import SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer, FCMTokenSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResetPasswordSerializer, FCMTokenSerializer, EmailTokenObtainPairSerializer
 from drf_yasg.utils import swagger_auto_schema
+
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailTokenObtainPairSerializer
+
 User = get_user_model()
 
 
