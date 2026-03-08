@@ -39,3 +39,20 @@ class FCMTokenSerializer(serializers.Serializer):
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make 'email' field optional to support older clients sending 'username'
+        self.fields['email'].required = False
+        # Add 'username' field as an optional fallback
+        self.fields['username'] = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        # Provide fallback: if 'email' isn't provided, use the value from 'username'
+        if not attrs.get('email') and attrs.get('username'):
+            attrs['email'] = attrs.get('username')
+        
+        if not attrs.get('email'):
+            raise serializers.ValidationError("Either email or username is required.")
+            
+        return super().validate(attrs)
