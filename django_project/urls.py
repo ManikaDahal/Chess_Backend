@@ -46,13 +46,11 @@ urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
     
-    # NEW FEATURE APPS
-    path('api/auth/', include('apps.authentication.urls')),
-    path('api/users_new/', include('apps.users.urls')), # temp name to avoid collision if any
-    path('api/notifications_new/', include('apps.notifications.urls')),
+    # FEATURE APPS (Legacy Compatible)
+    path('api/', include('apps.authentication.urls')),
+    path('api/', include('apps.users.urls')),
+    path('api/', include('apps.notifications.urls')),
     
-    # LEGACY / SHARED
-    # path('api/', include('chess_python.urls')),
     path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
