@@ -11,7 +11,7 @@ djangorestframework_simplejwt==5.5.1
 drf-yasg==1.21.11
 firebase-admin==6.6.0
 gunicorn==23.0.0
-psycopg-binary==3.3.2
+psycopg2-binary==2.9.10
 requests==2.32.5
 twilio==9.9.1
 whitenoise==6.11.0
