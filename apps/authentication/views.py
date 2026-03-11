@@ -1,5 +1,6 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -20,14 +21,29 @@ from .serializers import (
     ResetPasswordSerializer, EmailTokenObtainPairSerializer
 )
 
+from captcha.models import CaptchaStore
+from captcha.helpers import captcha_image_url
+
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
+    throttle_scope = 'login'
 
 User = get_user_model()
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_captcha(request):
+    hashkey = CaptchaStore.generate_key()
+    image_url = request.build_absolute_uri(captcha_image_url(hashkey))
+    return Response({
+        'captcha_hash': hashkey,
+        'captcha_image_url': image_url
+    })
 
 @swagger_auto_schema(method='post', request_body=SignupSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

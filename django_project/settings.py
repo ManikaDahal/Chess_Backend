@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'drf_yasg',
     'call',
     'rest_framework_simplejwt',
+    'axes',
+    'captcha',
 ]
 
 # Only add WebSocket apps if NOT on Vercel
@@ -77,6 +79,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
+    'apps.authentication.middleware.SecurityLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'django_project.urls'
@@ -170,16 +174,34 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 
 
-REST_FRAMEWORK={
-    'DEFAULT_AUTHENTICATION_CLASSES':(
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+        'signup': '5/hour',
+        'login': '10/hour',
+    }
 }
 
 AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',
     'apps.authentication.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Axes Configuration
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_TEMPLATE = None # Can be a custom template
+AXES_RESET_ON_SUCCESS = True
+# AXES_ONLY_USER_FAILURES is deprecated, axes 6.x+ uses different logic or defaults
 
 SIMPLE_JWT={
     'ACCESS_TOKEN_LIFETIME':timedelta(minutes=60),
@@ -224,3 +246,33 @@ if not IS_VERCEL:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'security_file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'security.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'security': {
+            'handlers': ['console', 'security_file'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+    },
+}
