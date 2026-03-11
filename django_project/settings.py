@@ -264,7 +264,7 @@ LOGGING = {
         'security_file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'security.log'),
+            'filename': '/tmp/security.log' if IS_VERCEL else os.path.join(BASE_DIR, 'security.log'),
             'formatter': 'verbose',
         },
     },
