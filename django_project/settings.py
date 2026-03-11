@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'axes',
     'captcha',
+    'corsheaders',
 ]
 
 # Only add WebSocket apps if NOT on Vercel
@@ -71,6 +72,7 @@ if not IS_VERCEL:
     INSTALLED_APPS.append('channels')
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -82,6 +84,9 @@ MIDDLEWARE = [
     'axes.middleware.AxesMiddleware',
     'apps.authentication.middleware.SecurityLoggingMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True # Set to True for development/testing
+
 
 ROOT_URLCONF = 'django_project.urls'
 
