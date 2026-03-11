@@ -53,7 +53,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'chess_python',
+    'apps.authentication',
+    'apps.users',
+    'apps.notifications',
+    'apps.game',
     'rest_framework',
     'drf_yasg',
     'call',
@@ -112,21 +115,19 @@ if os.environ.get('DATABASE_URL'):
     }
 else:
     # Local development: Use SQLite
-   DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql', 
-        'NAME': 'neondb',
-        'USER': 'neondb_owner',
-        'PASSWORD': 'npg_hl4UapeNS9xk',
-        'HOST': 'ep-round-hall-a10d3q1j-pooler.ap-southeast-1.aws.neon.tech',
-        'PORT': '5432',
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql', 
+            'NAME': 'neondb',
+            'USER': 'neondb_owner',
+            'PASSWORD': 'npg_hl4UapeNS9xk',
+            'HOST': 'ep-round-hall-a10d3q1j-pooler.ap-southeast-1.aws.neon.tech',
+            'PORT': '5432',
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
     }
-}
-
-
 
 
 # Password validation
@@ -176,7 +177,7 @@ REST_FRAMEWORK={
 }
 
 AUTHENTICATION_BACKENDS = [
-    'chess_python.backends.EmailBackend',
+    'apps.authentication.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -200,7 +201,7 @@ TWILIO_SID = os.environ.get("TWILIO_SID", "AC3b0cc9dcfd715105249387a53d4e9045")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "53ecda912d068cb5444fd8dac9dc8c89")
 TWILIO_PHONE = os.environ.get("TWILIO_PHONE", "+17659815977")
 
-AUTH_USER_MODEL = "chess_python.CustomUser"
+AUTH_USER_MODEL = "users.CustomUser"
 
 
 SWAGGER_SETTINGS={

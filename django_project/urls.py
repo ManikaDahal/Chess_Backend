@@ -24,7 +24,7 @@ from django.http import HttpResponse
 def home(request):
     return HttpResponse("Chess Backend is running successfully ")
 
-from chess_python.views import EmailTokenObtainPairView
+from apps.authentication.views import EmailTokenObtainPairView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
@@ -45,11 +45,18 @@ schema_view=get_schema_view(
 urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
-    path('api/', include('chess_python.urls')),
+    
+    # NEW FEATURE APPS
+    path('api/auth/', include('apps.authentication.urls')),
+    path('api/users_new/', include('apps.users.urls')), # temp name to avoid collision if any
+    path('api/notifications_new/', include('apps.notifications.urls')),
+    
+    # LEGACY / SHARED
+    # path('api/', include('chess_python.urls')),
     path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
-    # CHANGE: Added Swagger documentation URLs
+    # SWAGGER documentation URLs
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api/schema/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
