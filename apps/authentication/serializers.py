@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.signals import user_login_failed
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -69,4 +70,16 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not attrs.get('email'):
             raise serializers.ValidationError("Either email or username is required.")
             
-        return super().validate(attrs)
+        try:
+            return super().validate(attrs)
+        except serializers.ValidationError as e:
+            # Manually fire signal for Axes to track the failure
+            user_login_failed.send(
+                sender=self.__class__,
+                credentials={
+                    'username': attrs.get('email') or attrs.get('username'),
+                    'password': '[CLEANSED]'
+                },
+                request=self.context.get('request')
+            )
+            raise e
