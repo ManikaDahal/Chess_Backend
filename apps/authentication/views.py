@@ -153,3 +153,16 @@ def reset_password(request):
         'access': str(refresh.access_token),
         'refresh': str(refresh)
     }, status=200)
+
+from axes.models import AccessAttempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def axes_status(request):
+    attempts = AccessAttempt.objects.all()
+    return Response({
+        'count': attempts.count(),
+        'attempts': [
+            {'username': a.username, 'ip_address': a.ip_address, 'failures': a.failures_since_start}
+            for a in attempts[:10] # Limit to first 10 for overview
+        ]
+    })

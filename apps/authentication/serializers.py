@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
+from axes.helpers import is_already_locked_out
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -64,22 +65,31 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             except CaptchaStore.DoesNotExist:
                 raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
         
-        if not attrs.get('email') and attrs.get('username'):
-            attrs['email'] = attrs.get('username')
-        
         if not attrs.get('email'):
             raise serializers.ValidationError("Either email or username is required.")
             
+        # NUCLEAR OPTION: Manually check for Axes lockout
+        request = self.context.get('request')
+        # We need to pass the dummy credentials to help axes find the lockout record if by username
+        credentials = {
+            'username': attrs.get('email') or attrs.get('username'),
+        }
+        if is_already_locked_out(request, credentials):
+            raise serializers.ValidationError("Account locked out due to too many failed attempts. Please try again later.")
+
         try:
             return super().validate(attrs)
-        except serializers.ValidationError as e:
+        except Exception as e:
             # Manually fire signal for Axes to track the failure
+            # We use the identifier provided (email or username)
+            username = attrs.get('email') or attrs.get('username') or 'unknown'
             user_login_failed.send(
                 sender=self.__class__,
                 credentials={
-                    'username': attrs.get('email') or attrs.get('username'),
+                    'username': username,
                     'password': '[CLEANSED]'
                 },
                 request=self.context.get('request')
             )
+            print(f"DIAGNOSTIC: Serializer caught failure for {username}")
             raise e
