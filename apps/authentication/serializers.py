@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
-from axes.helpers import is_already_locked_out
+from axes.handlers.database import AxesDatabaseHandler
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -74,7 +74,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         credentials = {
             'username': attrs.get('email') or attrs.get('username'),
         }
-        if is_already_locked_out(request, credentials):
+        if AxesDatabaseHandler().is_locked(request, credentials):
             raise serializers.ValidationError("Account locked out due to too many failed attempts. Please try again later.")
 
         try:
