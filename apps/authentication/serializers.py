@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
 from axes.handlers.database import AxesDatabaseHandler
@@ -65,6 +65,9 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             except CaptchaStore.DoesNotExist:
                 raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
         
+        if not attrs.get('email') and attrs.get('username'):
+            attrs['email'] = attrs.get('username')
+        
         if not attrs.get('email'):
             raise serializers.ValidationError("Either email or username is required.")
             
@@ -72,12 +75,13 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         request = self.context.get('request')
         # We need to pass the dummy credentials to help axes find the lockout record if by username
         credentials = {
-            'username': attrs.get('email') or attrs.get('username'),
+            'username': attrs.get('email'),
         }
         if AxesDatabaseHandler().is_locked(request, credentials):
-            raise serializers.ValidationError("Account locked out due to too many failed attempts. Please try again later.")
+            raise exceptions.PermissionDenied("Account locked out due to too many failed attempts. Please try again later.")
 
         try:
+            print(f"DEBUG: Attempting login for {attrs.get('email')}")
             return super().validate(attrs)
         except Exception as e:
             # Manually fire signal for Axes to track the failure
