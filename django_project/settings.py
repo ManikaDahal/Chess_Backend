@@ -211,7 +211,7 @@ AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = False  # Lock out by user OR IP
+AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Standard behavior: Lockout by (User + IP)
 AXES_ONLY_USER_FAILURES = False
 AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
 AXES_PROXY_COUNT = 1

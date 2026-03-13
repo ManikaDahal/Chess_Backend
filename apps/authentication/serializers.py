@@ -75,7 +75,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         request = self.context.get('request')
         credentials = {'username': username}
         
-        print(f"DIAGNOSTIC SERIALIZER: Checking lockout for {username}")
+        print(f"DIAGNOSTIC SERIALIZER: Checking lockout for {username} from IP {request.META.get('REMOTE_ADDR') if request else 'No Request'}")
         
         if AxesDatabaseHandler().is_locked(request, credentials):
             print(f"DIAGNOSTIC SERIALIZER: LOCKED OUT {username}")
