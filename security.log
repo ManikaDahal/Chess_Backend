@@ -9,3 +9,4 @@ WARNING 2026-03-13 11:44:33,862 middleware 16116 26000 Security alert: 127.0.0.1
 WARNING 2026-03-13 11:44:37,568 middleware 16116 19692 Security alert: 127.0.0.1 POST /api/token/ -> 401 (1.64s)
 WARNING 2026-03-13 11:44:41,225 middleware 16116 27536 Security alert: 127.0.0.1 POST /api/token/ -> 401 (1.50s)
 WARNING 2026-03-13 11:44:44,908 middleware 16116 24264 Security alert: 127.0.0.1 POST /api/token/ -> 401 (1.63s)
+WARNING 2026-03-13 14:59:07,058 middleware 28656 30540 Security alert: 127.0.0.1 GET /api/captcha/ -> 429 (0.00s)

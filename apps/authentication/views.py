@@ -11,16 +11,70 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.views import APIView
+import logging
+logger = logging.getLogger(__name__)
 
+from .models import PasswordResetOTP
+from .serializers import (
+    SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, 
+    ResetPasswordSerializer, EmailTokenObtainPairSerializer
+)
+from captcha.models import CaptchaStore
+from captcha.helpers import captcha_image_url
 # Note: We'll need a way to reach the utils.py. For now, we'll import from chess_python
 # but eventually it should be moved to a shared location or duplicated if it's app-specific.
 from chess_python.utils import send_sms
+
+class GetCaptchaView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'captcha'
+    
+    def get(self, request, *args, **kwargs):
+        hashkey = CaptchaStore.generate_key()
+        image_url = request.build_absolute_uri(captcha_image_url(hashkey))
+        return Response({
+            'captcha_hash': hashkey,
+            'captcha_image_url': image_url
+        })
+
+class SignupView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'signup'
+
+    @swagger_auto_schema(request_body=SignupSerializer)
+    def post(self, request, *args, **kwargs):
+        serializer = SignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        email = serializer.validated_data['email']
+
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists'}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'Email already registered'}, status=400)
+
+        user = User.objects.create_user(username=username, password=password, email=email)
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token)
+        }, status=201)
 from .models import PasswordResetOTP
 from .serializers import (
     SignupSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, 
     ResetPasswordSerializer, EmailTokenObtainPairSerializer
 )
 
+# Note: We'll need a way to reach the utils.py. For now, we'll import from chess_python
+# but eventually it should be moved to a shared location or duplicated if it's app-specific.
+from chess_python.utils import send_sms
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
 
@@ -30,44 +84,7 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 
 User = get_user_model()
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-@throttle_classes([ScopedRateThrottle])
-def get_captcha(request):
-    # Set throttle scope for this specific function
-    request.throttle_scope = 'captcha'
-    hashkey = CaptchaStore.generate_key()
-    image_url = request.build_absolute_uri(captcha_image_url(hashkey))
-    return Response({
-        'captcha_hash': hashkey,
-        'captcha_image_url': image_url
-    })
-
-@swagger_auto_schema(method='post', request_body=SignupSerializer)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@throttle_classes([ScopedRateThrottle])
-def signup(request):
-    serializer = SignupSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    username = serializer.validated_data['username']
-    password = serializer.validated_data['password']
-    email = serializer.validated_data['email']
-
-    if User.objects.filter(username=username).exists():
-        return Response({'error': 'Username already exists'}, status=400)
-
-    if User.objects.filter(email=email).exists():
-        return Response({'error': 'Email already registered'}, status=400)
-
-    user = User.objects.create_user(username=username, password=password, email=email)
-    refresh = RefreshToken.for_user(user)
-
-    return Response({
-        'refresh': str(refresh),
-        'access': str(refresh.access_token)
-    }, status=201)
+# Empty space for clarity
 
 @swagger_auto_schema(method='post', request_body=ForgotPasswordSerializer)
 @api_view(['POST'])
