@@ -3,6 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
 from axes.handlers.database import AxesDatabaseHandler
 from axes.helpers import get_client_ip_address, get_client_user_agent, get_client_path_info
+from django.utils.timezone import now
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -85,6 +86,8 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             r.axes_user_agent = get_client_user_agent(r)
         if not hasattr(r, 'axes_path_info'):
             r.axes_path_info = get_client_path_info(r)
+        if not hasattr(r, 'axes_attempt_time'):
+            r.axes_attempt_time = now()
             
         credentials = {'username': username}
         
