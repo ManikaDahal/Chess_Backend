@@ -13,7 +13,8 @@ class EmailBackend(ModelBackend):
         
         if identifier:
             print(f"DEBUG BACKEND: Checking Email matches for {identifier}")
-            users = UserModel.objects.filter(email=identifier)
+            # Use __iexact for case-insensitive email login
+            users = UserModel.objects.filter(email__iexact=identifier)
             for user in users:
                 if user.check_password(password) and self.user_can_authenticate(user):
                     print(f"DEBUG BACKEND: Authenticated via Email: {user.username}")
@@ -21,7 +22,8 @@ class EmailBackend(ModelBackend):
             
             print(f"DEBUG BACKEND: Checking Username matches for {identifier}")
             try:
-                user = UserModel.objects.get(username=identifier)
+                # Use __iexact for case-insensitive username login as well (common practice)
+                user = UserModel.objects.get(username__iexact=identifier)
                 if user.check_password(password) and self.user_can_authenticate(user):
                     print(f"DEBUG BACKEND: Authenticated via Username: {user.username}")
                     return user

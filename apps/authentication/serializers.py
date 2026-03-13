@@ -44,12 +44,12 @@ class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField()
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'
+    username_field = 'username'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['email'].required = False
         self.fields['username'] = serializers.CharField(required=False)
+        self.fields['email'] = serializers.EmailField(required=False)
         self.fields['captcha_hash'] = serializers.CharField(required=False, write_only=True)
         self.fields['captcha_value'] = serializers.CharField(required=False, write_only=True)
 
@@ -65,27 +65,27 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
                 raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
         
         # Robust username/email mapping
-        username = attrs.get('email') or attrs.get('username')
+        username = attrs.get('username') or attrs.get('email')
         if not username:
              raise serializers.ValidationError("Either email or username is required.")
         
-        attrs['email'] = username # Ensure the field SimpleJWT looks for is populated
+        attrs['username'] = username # Ensure the field SimpleJWT looks for is populated
             
         # NUCLEAR OPTION: Manually check for Axes lockout
         request = self.context.get('request')
         credentials = {'username': username}
         
-        print(f"DEBUG AXES: Checking lockout for {username} from IP {request.META.get('REMOTE_ADDR') if request else 'No Request'}")
+        print(f"DIAGNOSTIC SERIALIZER: Checking lockout for {username}")
         
         if AxesDatabaseHandler().is_locked(request, credentials):
-            print(f"DEBUG AXES: LOCKED OUT {username}")
+            print(f"DIAGNOSTIC SERIALIZER: LOCKED OUT {username}")
             raise exceptions.PermissionDenied("Account locked out due to too many failed attempts. Please try again later.")
 
         try:
-            print(f"DEBUG AUTH: Attempting authenticate for identifier: {username}")
+            print(f"DIAGNOSTIC SERIALIZER: Calling authenticate for {username}")
             return super().validate(attrs)
         except Exception as e:
-            print(f"DEBUG AUTH: Authentication FAILED for {username}. Error: {str(e)}")
+            print(f"DIAGNOSTIC SERIALIZER: Auth failed for {username}. Error: {str(e)}")
             # Manually fire signal for Axes
             user_login_failed.send(
                 sender=self.__class__,
