@@ -207,16 +207,21 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Axes Configuration
+AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = False  # Lock out by user OR IP
-AXES_PROXY_COUNT = 1
+AXES_ONLY_USER_FAILURES = False
+AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
+AXES_PROXY_COUNT = None # Use first IP in X-Forwarded-For
 AXES_META_PRECEDENCE_ORDER = [
     'HTTP_X_FORWARDED_FOR',
     'HTTP_X_REAL_IP',
     'REMOTE_ADDR',
 ]
+AXES_ENABLE_ACCESS_FAILURE_LOG = True
+AXES_VERBOSE = True
 # AXES_LOCKOUT_TEMPLATE = None # Can be a custom template
 
 SIMPLE_JWT={
