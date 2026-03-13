@@ -72,6 +72,7 @@ if not IS_VERCEL:
     INSTALLED_APPS.append('channels')
 
 MIDDLEWARE = [
+    'axes.middleware.AxesMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
@@ -81,7 +82,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'axes.middleware.AxesMiddleware',
     'apps.authentication.middleware.SecurityLoggingMiddleware',
 ]
 
@@ -193,10 +193,10 @@ REST_FRAMEWORK = {
         #'signup': '5/hour',
         #'login': '10/hour',
         #For demo
-        'anon': '5/minute',
-        'user': '10/minute',
-        'signup': '2/minute',
-        'login': '3/minute',
+        'anon': '100/minute',
+        'user': '100/minute',
+        'signup': '50/minute',
+        'login': '100/minute',
     }
 }
 
@@ -207,11 +207,15 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Axes Configuration
-AXES_FAILURE_LIMIT = 5
+AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=15)
-AXES_LOCKOUT_TEMPLATE = None # Can be a custom template
 AXES_RESET_ON_SUCCESS = True
-# AXES_ONLY_USER_FAILURES is deprecated, axes 6.x+ uses different logic or defaults
+AXES_PROXY_COUNT = 1
+AXES_META_PRECEDENCE_ORDER = [
+    'HTTP_X_FORWARDED_FOR',
+    'REMOTE_ADDR',
+]
+# AXES_LOCKOUT_TEMPLATE = None # Can be a custom template
 
 SIMPLE_JWT={
     'ACCESS_TOKEN_LIFETIME':timedelta(minutes=60),
