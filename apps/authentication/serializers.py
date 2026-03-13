@@ -2,7 +2,7 @@ from rest_framework import serializers, exceptions
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
 from axes.handlers.database import AxesDatabaseHandler
-from axes.helpers import get_client_ip_address
+from axes.helpers import get_client_ip_address, get_client_user_agent, get_client_path_info
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -81,6 +81,10 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         r = getattr(request, '_request', request)
         if not hasattr(r, 'axes_ip_address'):
             r.axes_ip_address = get_client_ip_address(r)
+        if not hasattr(r, 'axes_user_agent'):
+            r.axes_user_agent = get_client_user_agent(r)
+        if not hasattr(r, 'axes_path_info'):
+            r.axes_path_info = get_client_path_info(r)
             
         credentials = {'username': username}
         
