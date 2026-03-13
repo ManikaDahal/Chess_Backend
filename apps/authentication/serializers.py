@@ -2,25 +2,28 @@ from rest_framework import serializers, exceptions
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.signals import user_login_failed
 from axes.handlers.database import AxesDatabaseHandler
+from axes.helpers import get_client_ip_address
 
 class SignupSerializer(serializers.Serializer):
     username = serializers.CharField()
     email = serializers.EmailField()
     password = serializers.CharField()
-    captcha_hash = serializers.CharField(write_only=True)
-    captcha_value = serializers.CharField(write_only=True)
+    captcha_hash = serializers.CharField(required=False, write_only=True)
+    captcha_value = serializers.CharField(required=False, write_only=True)
 
     def validate(self, attrs):
         from captcha.models import CaptchaStore
         hashkey = attrs.get('captcha_hash')
         response = attrs.get('captcha_value')
         
-        # Verify captcha
-        try:
-            CaptchaStore.objects.get(hashkey=hashkey, response=response.lower()).delete()
-        except CaptchaStore.DoesNotExist:
-            raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
-            
+        # Verify captcha only if provided
+        if hashkey and response:
+            try:
+                CaptchaStore.objects.get(hashkey=hashkey, response=response.lower()).delete()
+            except CaptchaStore.DoesNotExist:
+                raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
+        
+        print(f"DIAGNOSTIC SIGNUP: Validating signup for {attrs.get('username')}")
         return attrs
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -73,9 +76,15 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             
         # NUCLEAR OPTION: Manually check for Axes lockout
         request = self.context.get('request')
+        
+        # Ensure axes_ip_address is set (sometimes missing in DRF/Vercel)
+        r = getattr(request, '_request', request)
+        if not hasattr(r, 'axes_ip_address'):
+            r.axes_ip_address = get_client_ip_address(r)
+            
         credentials = {'username': username}
         
-        print(f"DIAGNOSTIC SERIALIZER: Checking lockout for {username} from IP {request.META.get('REMOTE_ADDR') if request else 'No Request'}")
+        print(f"DIAGNOSTIC SERIALIZER: Checking lockout for {username} from IP {getattr(r, 'axes_ip_address', 'Unknown')}")
         
         if AxesDatabaseHandler().is_locked(request, credentials):
             print(f"DIAGNOSTIC SERIALIZER: LOCKED OUT {username}")
