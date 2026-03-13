@@ -188,15 +188,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        #'anon': '100/day',
-        #'user': '1000/day',
-        #'signup': '5/hour',
-        #'login': '10/hour',
-        #For demo
-        'anon': '100/minute',
-        'user': '100/minute',
-        'signup': '50/minute',
-        'login': '100/minute',
+        'anon': '10/minute',
+        'user': '10/minute',
+        'signup': '5/minute', # Reasonable protection
+        'login': '10/minute', # Reasonable protection
+        'captcha': '5/minute', # Specific limit for the demo endpoint
     }
 }
 

@@ -32,7 +32,10 @@ User = get_user_model()
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def get_captcha(request):
+    # Set throttle scope for this specific function
+    request.throttle_scope = 'captcha'
     hashkey = CaptchaStore.generate_key()
     image_url = request.build_absolute_uri(captcha_image_url(hashkey))
     return Response({
