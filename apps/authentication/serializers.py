@@ -54,10 +54,9 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         self.fields['captcha_value'] = serializers.CharField(required=False, write_only=True)
 
     def validate(self, attrs):
-        # Captcha is optional for now or can be enforced based on logic
+        # Captcha logic
         hashkey = attrs.get('captcha_hash')
         response = attrs.get('captcha_value')
-        
         if hashkey and response:
             from captcha.models import CaptchaStore
             try:
@@ -65,35 +64,32 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             except CaptchaStore.DoesNotExist:
                 raise serializers.ValidationError({"captcha": "Invalid or expired captcha"})
         
-        if not attrs.get('email') and attrs.get('username'):
-            attrs['email'] = attrs.get('username')
+        # Robust username/email mapping
+        username = attrs.get('email') or attrs.get('username')
+        if not username:
+             raise serializers.ValidationError("Either email or username is required.")
         
-        if not attrs.get('email'):
-            raise serializers.ValidationError("Either email or username is required.")
+        attrs['email'] = username # Ensure the field SimpleJWT looks for is populated
             
         # NUCLEAR OPTION: Manually check for Axes lockout
         request = self.context.get('request')
-        # We need to pass the dummy credentials to help axes find the lockout record if by username
-        credentials = {
-            'username': attrs.get('email'),
-        }
+        credentials = {'username': username}
+        
+        print(f"DEBUG AXES: Checking lockout for {username} from IP {request.META.get('REMOTE_ADDR') if request else 'No Request'}")
+        
         if AxesDatabaseHandler().is_locked(request, credentials):
+            print(f"DEBUG AXES: LOCKED OUT {username}")
             raise exceptions.PermissionDenied("Account locked out due to too many failed attempts. Please try again later.")
 
         try:
-            print(f"DEBUG: Attempting login for {attrs.get('email')}")
+            print(f"DEBUG AUTH: Attempting authenticate for identifier: {username}")
             return super().validate(attrs)
         except Exception as e:
-            # Manually fire signal for Axes to track the failure
-            # We use the identifier provided (email or username)
-            username = attrs.get('email') or attrs.get('username') or 'unknown'
+            print(f"DEBUG AUTH: Authentication FAILED for {username}. Error: {str(e)}")
+            # Manually fire signal for Axes
             user_login_failed.send(
                 sender=self.__class__,
-                credentials={
-                    'username': username,
-                    'password': '[CLEANSED]'
-                },
-                request=self.context.get('request')
+                credentials={'username': username, 'password': '[CLEANSED]'},
+                request=request
             )
-            print(f"DIAGNOSTIC: Serializer caught failure for {username}")
             raise e

@@ -12,16 +12,21 @@ class EmailBackend(ModelBackend):
         )
         
         if identifier:
+            print(f"DEBUG BACKEND: Checking Email matches for {identifier}")
             users = UserModel.objects.filter(email=identifier)
             for user in users:
                 if user.check_password(password) and self.user_can_authenticate(user):
+                    print(f"DEBUG BACKEND: Authenticated via Email: {user.username}")
                     return user
             
+            print(f"DEBUG BACKEND: Checking Username matches for {identifier}")
             try:
                 user = UserModel.objects.get(username=identifier)
                 if user.check_password(password) and self.user_can_authenticate(user):
+                    print(f"DEBUG BACKEND: Authenticated via Username: {user.username}")
                     return user
             except UserModel.DoesNotExist:
+                print(f"DEBUG BACKEND: User not found: {identifier}")
                 pass
         
         return None
