@@ -19,6 +19,7 @@ import sentry_sdk
 # Initialize Sentry
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if SENTRY_DSN:
+    print("Sentry initialized with DSN.")
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         # Set traces_sample_rate to 1.0 to capture 100%
