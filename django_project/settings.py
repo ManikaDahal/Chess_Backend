@@ -14,6 +14,20 @@ from pathlib import Path
 from datetime import timedelta
 import os
 import dj_database_url
+import sentry_sdk
+
+# Initialize Sentry
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for tracing.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        profiles_sample_rate=1.0,
+    )
 
 # Detect if running on Vercel
 IS_VERCEL = "VERCEL" in os.environ

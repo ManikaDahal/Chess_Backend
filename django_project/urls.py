@@ -24,6 +24,9 @@ from django.http import HttpResponse
 def home(request):
     return HttpResponse("Chess Backend is running successfully ")
 
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
 from apps.authentication.views import EmailTokenObtainPairView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
@@ -44,6 +47,7 @@ schema_view=get_schema_view(
 
 urlpatterns = [
     path('', home, name='home'),
+    path('trigger-error/', trigger_error, name='trigger-error'),
     path('admin/', admin.site.urls),
     
     # FEATURE APPS (Legacy Compatible)
