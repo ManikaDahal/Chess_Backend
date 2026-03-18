@@ -17,6 +17,7 @@ def get_rank_name(coins):
 @permission_classes([IsAuthenticated])
 def profile(request):
     user = request.user
+    
     can_claim = True
     if user.last_gift_claim:
         can_claim = timezone.now() > user.last_gift_claim + timedelta(hours=24)

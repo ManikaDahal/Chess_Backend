@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
     phone = models.CharField(max_length=15, unique=True, null=True, blank=True)
-    coins = models.IntegerField(default=1250) # Matching initial UI
+    coins = models.IntegerField(default=0)
     last_gift_claim = models.DateTimeField(null=True, blank=True)
 
     class Meta:
