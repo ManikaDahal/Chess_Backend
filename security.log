@@ -11,3 +11,4 @@ WARNING 2026-03-13 11:44:41,225 middleware 16116 27536 Security alert: 127.0.0.1
 WARNING 2026-03-13 11:44:44,908 middleware 16116 24264 Security alert: 127.0.0.1 POST /api/token/ -> 401 (1.63s)
 WARNING 2026-03-13 14:59:07,058 middleware 28656 30540 Security alert: 127.0.0.1 GET /api/captcha/ -> 429 (0.00s)
 WARNING 2026-03-13 15:03:48,283 middleware 15952 11896 Security alert: 127.0.0.1 GET /api/captcha/ -> 429 (0.00s)
+WARNING 2026-03-16 15:38:22,791 middleware 23140 31696 Security alert: 103.190.41.12 GET /api/profile/ -> 401 (0.01s)
