@@ -90,7 +90,9 @@ def google_login(request):
         
         # Get or create user by email
         user = CustomUser.objects.filter(email=email).first()
+        created = False
         if not user:
+            created = True
             # Check if username exists
             username = email.split('@')[0]
             if CustomUser.objects.filter(username=username).exists():
