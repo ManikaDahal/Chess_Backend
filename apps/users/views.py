@@ -112,10 +112,24 @@ def google_login(request):
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'user': UserSerializer(user).data
+            'user': UserSerializer(user).data,
+            'is_new_user': created  # Use the 'created' flag here
         })
 
     except ValueError:
         return Response({'error': 'Invalid token'}, status=400)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_password(request):
+    password = request.data.get('password')
+    if not password:
+        return Response({'error': 'Password is required'}, status=400)
+    
+    user = request.user
+    user.set_password(password)
+    user.save()
+    
+    return Response({'message': 'Password set successfully'})
