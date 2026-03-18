@@ -5,6 +5,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser
 from .serializers import UserSerializer
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework_simplejwt.tokens import RefreshToken
+import random
+import string
 
 def get_rank_name(coins):
     if coins <= 1000: return "Novice"
@@ -68,3 +73,49 @@ def list_users(request):
     users = CustomUser.objects.exclude(id=request.user.id)
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data, status=200)
+
+@api_view(['POST'])
+def google_login(request):
+    token = request.data.get('idToken')
+    if not token:
+        return Response({'error': 'idToken is required'}, status=400)
+
+    try:
+        # Use the Web Client ID for verification
+        client_id = "244432064616-7td991prljaqtfh63aei6mfg5eajemku.apps.googleusercontent.com"
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), client_id)
+
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+        
+        # Get or create user by email
+        user = CustomUser.objects.filter(email=email).first()
+        if not user:
+            # Check if username exists
+            username = email.split('@')[0]
+            if CustomUser.objects.filter(username=username).exists():
+                username = f"{username}_{''.join(random.choices(string.digits, k=4))}"
+            
+            user = CustomUser.objects.create(
+                email=email,
+                username=username,
+                first_name=name,
+            )
+            # Set a random password
+            password = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+            user.set_password(password)
+            user.save()
+
+        # Generate JWT
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': UserSerializer(user).data
+        })
+
+    except ValueError:
+        return Response({'error': 'Invalid token'}, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
