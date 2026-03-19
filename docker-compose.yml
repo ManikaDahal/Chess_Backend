@@ -1,0 +1,63 @@
+services:
+  web:
+    build: .
+    # Runs the Django development server
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # Syncs your local files to the container so you don't have to rebuild on every code change
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      # Update these if you configure PostgreSQL in Django settings
+      - DB_HOST=db
+      - DB_NAME=chessdb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    
+    # --- RESOURCE ALLOCATION ---
+    deploy:
+      resources:
+        limits:
+          memory: 2G         # RAM: Maximum 2 GB
+          cpus: '1.5'        # CPU: Max 1.5 cores given to the backend
+        reservations:
+          memory: 512M       # Minimum guaranteed RAM
+          cpus: '0.2'        # Minimum guaranteed CPU
+          
+          # UNCOMMENT THE LINES BELOW TO ALLOCATE YOUR GPU TO THE BACKEND
+          # (Requires Docker Desktop to be configured for NVIDIA GPU passthrough)
+          # devices:
+          #   - driver: nvidia
+          #     count: 1
+          #     capabilities: [gpu]
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=chessdb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+      
+    # limit resources for the database too
+    deploy:
+      resources:
+        limits:
+          memory: 1G         # RAM limit for database
+          cpus: '0.5'        # CPU limit for database
+
+volumes:
+  # The database data relies on this volume.
+  postgres_data:
+  
+# Note on SSD Storage limits (e.g. 20GB):
+# Docker Desktop on Windows manages SSD space at the VM level 
+# (By default it creates a dynamic .vhdx file that grows as needed).
+# Instead of hard-coding 20GB into this compose file, you should go to:
+# Docker Desktop -> Settings -> Resources -> Virtual disk limit
+# and set the maximum disk image size to 20 GB.
