@@ -126,8 +126,6 @@ WSGI_APPLICATION = 'django_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# CHANGE: Use PostgreSQL in production (via DATABASE_URL), SQLite for local development
-# For Vercel deployment, set DATABASE_URL environment variable to your PostgreSQL connection string
 if os.environ.get('DATABASE_URL'):
     # Production: Use PostgreSQL from DATABASE_URL environment variable
     DATABASES = {
@@ -138,10 +136,10 @@ if os.environ.get('DATABASE_URL'):
         )
     }
 else:
-    # Local development: Use SQLite
+    # Fallback: Neon PostgreSQL (same as before Docker integration)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql', 
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'neondb',
             'USER': 'neondb_owner',
             'PASSWORD': 'npg_hl4UapeNS9xk',
@@ -152,6 +150,7 @@ else:
             },
         }
     }
+
 
 
 # Password validation

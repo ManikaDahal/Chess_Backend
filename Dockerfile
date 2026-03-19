@@ -17,7 +17,8 @@ RUN apt-get update \
 # Install Python dependencies
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    pip install daphne==4.1.2 channels==4.1.0
 
 # Copy the rest of the project files
 COPY . /app/
