@@ -1,6 +1,6 @@
 from django.urls import re_path
-from media.consumers import CallConsumer
-from chat.consumers import ChatConsumer
+from apps.media.consumers import CallConsumer
+from apps.chat.consumers import ChatConsumer
 from apps.game.consumers import GameConsumer
 
 websocket_urlpatterns = [

@@ -34,7 +34,7 @@ def chat_history(request, room_id):
 @permission_classes([IsAuthenticated])
 def get_or_create_private_room(request):
     """Gets or creates a private chat room between two users."""
-    User = apps.get_model('chess_python', 'CustomUser')
+    User = apps.get_model('users', 'CustomUser')
     
     try:
         user1_id = int(request.data.get('user1_id', 0))

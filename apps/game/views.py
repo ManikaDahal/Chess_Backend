@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import GameInvite, GameMove
-from chat.models import ChatRoom
+from apps.chat.models import ChatRoom
 from apps.notifications.utils import notify_user_background
 from django.db.models import Count
 

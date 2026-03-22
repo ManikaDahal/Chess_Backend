@@ -73,8 +73,8 @@ urlpatterns = [
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.notifications.urls')),
     path('api/', include('apps.game.urls')),
-    path('api/chat/', include('chat.urls')),
-    path('api/', include('media.urls')), # media.urls already has prefixes like 'videos/', 'voice/'
+    path('api/chat/', include('apps.chat.urls')),
+    path('api/', include('apps.media.urls')), # media.urls already has prefixes like 'videos/', 'voice/'
 
     path('captcha/', include('captcha.urls')),
     

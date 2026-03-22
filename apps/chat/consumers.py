@@ -8,7 +8,7 @@ from apps.notifications.utils import notify_user_background, notify_multiple_use
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         self.room_id = int(self.scope["url_route"]["kwargs"]["room_id"])  
         self.user_id = int(self.scope["url_route"]["kwargs"]["user_id"])
         self.room_group_name = f"chat_{self.room_id}"
@@ -169,7 +169,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_sender_name(self, user_id):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         try:
             user = User.objects.get(id=user_id)
             return user.username
@@ -179,7 +179,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def add_user_to_room_db(self):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         try:
             room, _ = ChatRoom.objects.get_or_create(id=self.room_id)
             user = User.objects.get(id=self.user_id)
@@ -192,7 +192,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, user_id, message):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         try:
              room = ChatRoom.objects.get(id=int(self.room_id))
              user = User.objects.get(id=user_id)
@@ -224,7 +224,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def handle_reaction(self, user_id, msg_id, emoji):
         from .models import MessageReaction
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         try:
             user = User.objects.get(id=user_id)
             msg = Message.objects.get(id=msg_id)
@@ -249,7 +249,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def send_reaction_notification(self, receiver_id, message, sender_name, msg_id):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         try:
             receiver = User.objects.get(id=receiver_id)
             room = ChatRoom.objects.get(id=int(self.room_id))
@@ -273,7 +273,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def create_notification(self, sender_id, message, sender_name, msg_id=None):
         from django.apps import apps
-        User = apps.get_model('chess_python', 'CustomUser')
+        User = apps.get_model('users', 'CustomUser')
         
         try:
             room = ChatRoom.objects.get(id=int(self.room_id))

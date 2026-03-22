@@ -59,7 +59,7 @@ def notify_room_members_background(room_id, message, sender_id, sender_name, msg
     Sends FCM notification to all members of a room except the sender.
     """
     try:
-        from chat.models import ChatRoom
+        from apps.chat.models import ChatRoom
 
         room = ChatRoom.objects.get(id=room_id)
         participants = room.users.exclude(id=sender_id)
