@@ -75,6 +75,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'call',
+    'chat',
+    'media',
+    'cloudinary_storage',
+    'cloudinary',
     'rest_framework_simplejwt',
     'axes',
     'captcha',
@@ -280,8 +284,12 @@ if not IS_VERCEL:
     ASGI_APPLICATION = "django_project.asgi.application"
 
     CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+                'expiry': 60,
+            }
         }
     }
 
@@ -314,3 +322,15 @@ LOGGING = {
         },
     },
 }
+
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# File upload settings for large video files
+FILE_UPLOAD_MAX_MEMORY_SIZE = 200 * 1024 * 1024  # 200MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 200 * 1024 * 1024  # 200MB
