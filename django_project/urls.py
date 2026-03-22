@@ -27,9 +27,27 @@ def home(request):
 def trigger_error(request):
     division_by_zero = 1 / 0
 
-from apps.authentication.views import EmailTokenObtainPairView
+from apps.authentication.views import EmailTokenObtainPairView, SignupView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
+)
+
+# Define patterns to include in the Staging Swagger
+staging_patterns = [
+    path('api/signup/', SignupView.as_view(), name='signup'),
+    path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
+]
+
+staging_schema_view = get_schema_view(
+    openapi.Info(
+        title="Staging Test API",
+        default_version='v1',
+        description="Limited Swagger documentation exposing only 2 APIs for Staging Testing (Signup and Login).",
+    ),
+    public=True,
+    permission_classes=[permissions.AllowAny],
+    authentication_classes=[],
+    patterns=staging_patterns,
 )
 
 schema_view=get_schema_view(
@@ -62,6 +80,7 @@ urlpatterns = [
     
     # SWAGGER documentation URLs
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('api/staging-docs/', staging_schema_view.with_ui('swagger', cache_timeout=0), name='staging-swagger-ui'),
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api/schema/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
