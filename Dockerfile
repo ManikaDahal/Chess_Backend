@@ -11,7 +11,7 @@ WORKDIR /app
 
 # Install system dependencies (optional, but good for psycopg2 and other packages)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && apt-get install -y --no-install-recommends gcc libpq-dev libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
