@@ -106,6 +106,11 @@ class CallConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        
+        await self.send(text_data=json.dumps({
+            'type': 'connection_established',
+            'room_id': self.room_name
+        }))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
