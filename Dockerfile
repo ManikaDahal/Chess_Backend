@@ -23,8 +23,8 @@ RUN pip install --upgrade pip && \
 # Copy the rest of the project files
 COPY . /app/
 
-# Expose the port the app runs on
-EXPOSE 8000
+# Expose the port Hugging Face Spaces expects
+EXPOSE 7860
 
-# Command to run the application locally
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Command to run the application using Daphne (ASGI) on port 7860
+CMD ["daphne", "-b", "0.0.0.0", "-p", "7860", "django_project.asgi:application"]
