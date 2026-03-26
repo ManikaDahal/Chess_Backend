@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.notifications',
     'apps.game',
+    'apps.payments',
     'rest_framework',
     'drf_yasg',
     'call',
@@ -314,3 +315,7 @@ LOGGING = {
         },
     },
 }
+# Stripe Configuration
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_your_key_here')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_your_key_here')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_your_key_here')

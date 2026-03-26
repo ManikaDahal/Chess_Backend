@@ -55,6 +55,7 @@ urlpatterns = [
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.notifications.urls')),
     path('api/', include('apps.game.urls')),
+    path('api/payments/', include('apps.payments.urls')),
     path('captcha/', include('captcha.urls')),
     
     path('api/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
