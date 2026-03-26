@@ -93,3 +93,49 @@ class StripeWebhookView(APIView):
                     print(f"[STRIPE] PaymentIntentRecord {intent_id} not found or already processed.")
                     
         return Response(status=status.HTTP_200_OK)
+
+class ConfirmPaymentView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        payment_intent_id = request.data.get('payment_intent_id')
+        if not payment_intent_id:
+            return Response({"error": "payment_intent_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Verify with Stripe directly — cannot be spoofed by the client
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        except Exception as e:
+            return Response({"error": f"Stripe error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if intent['status'] != 'succeeded':
+            return Response({"error": "Payment has not succeeded yet"}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        with transaction.atomic():
+            try:
+                record = PaymentIntentRecord.objects.select_for_update().get(
+                    intent_id=payment_intent_id,
+                    user=request.user,  # Ensure the record belongs to this user
+                    status='pending'
+                )
+                record.status = 'succeeded'
+                record.save()
+
+                user = record.user
+                user.coins += record.coins_awarded
+                user.save()
+
+                return Response({
+                    "coins": user.coins,
+                    "coins_awarded": record.coins_awarded,
+                    "message": f"Successfully awarded {record.coins_awarded} coins!"
+                })
+            except PaymentIntentRecord.DoesNotExist:
+                # Already processed — return current coin total safely
+                user = request.user
+                return Response({
+                    "coins": user.coins,
+                    "coins_awarded": 0,
+                    "message": "Payment already processed."
+                })
