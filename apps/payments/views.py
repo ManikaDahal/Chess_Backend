@@ -139,3 +139,76 @@ class ConfirmPaymentView(APIView):
                     "coins_awarded": 0,
                     "message": "Payment already processed."
                 })
+
+import requests
+
+class VerifyKhaltiPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token')
+        amount = request.data.get('amount')
+        coins = request.data.get('coins')
+
+        if not token or not amount or not coins:
+            return Response({"error": "Token, amount, and coins are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        khalti_secret_key = getattr(settings, 'KHALTI_SECRET_KEY', '')
+        if not khalti_secret_key:
+            return Response({"error": "Khalti secret key not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        payload = {
+            "token": token,
+            "amount": amount
+        }
+        headers = {
+            "Authorization": f"Key {khalti_secret_key}"
+        }
+
+        try:
+            # Verify with Khalti API
+            response = requests.post("https://khalti.com/api/v2/payment/verify/", data=payload, headers=headers)
+            response_data = response.json()
+
+            if response.status_code == 200:
+                # Payment was successful, Khalti returns state containing "idx" (transaction ID)
+                khalti_idx = response_data.get('idx')
+
+                # Ensure it's not already processed
+                with transaction.atomic():
+                    # Check if we already have a successful transaction for this Khalti idx
+                    exists = PaymentIntentRecord.objects.filter(intent_id=khalti_idx, status='succeeded').exists()
+                    if exists:
+                        return Response({
+                            "coins": request.user.coins,
+                            "message": "Payment already processed."
+                        })
+
+                    # Record transaction and award coins
+                    PaymentIntentRecord.objects.create(
+                        user=request.user,
+                        intent_id=khalti_idx,
+                        amount=int(amount),
+                        currency='npr',  # Khalti is NPR
+                        coins_awarded=int(coins),
+                        status='succeeded'
+                    )
+
+                    user = request.user
+                    user.coins += int(coins)
+                    user.save()
+
+                    return Response({
+                        "coins": user.coins,
+                        "coins_awarded": int(coins),
+                        "message": f"Successfully awarded {coins} coins via Khalti!"
+                    })
+            else:
+                return Response({
+                    "error": "Khalti Verification failed",
+                    "details": response_data
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": f"Khalti verification error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
