@@ -1,5 +1,6 @@
 import stripe
 from django.conf import settings
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -141,74 +142,151 @@ class ConfirmPaymentView(APIView):
                 })
 
 import requests
+import uuid
+
+class InitiateKhaltiPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        amount = request.data.get('amount')
+        coins = request.data.get('coins')
+
+        if not amount or not coins:
+            return Response({"error": "Amount and coins are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        khalti_secret_key = getattr(settings, 'KHALTI_SECRET_KEY', '')
+        if not khalti_secret_key:
+            return Response({"error": "Khalti secret key not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        order_id = str(uuid.uuid4())
+
+        payload = {
+            "return_url": "https://chess-backend-ochre.vercel.app/api/payments/khalti-return/",
+            "website_url": "https://chess-backend-ochre.vercel.app/",
+            "amount": int(amount),
+            "purchase_order_id": order_id,
+            "purchase_order_name": f"{coins} Coins",
+            "customer_info": {
+                "name": request.user.username,
+                "email": request.user.email or "user@example.com",
+                "phone": "9800000000"
+            }
+        }
+        headers = {
+            "Authorization": f"Key {khalti_secret_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post("https://a.khalti.com/api/v2/epayment/initiate/", json=payload, headers=headers)
+            response_data = response.json()
+
+            if response.status_code == 200:
+                pidx = response_data.get('pidx')
+                payment_url = response_data.get('payment_url')
+
+                PaymentIntentRecord.objects.create(
+                    user=request.user,
+                    intent_id=pidx,
+                    amount=int(amount),
+                    currency='npr',
+                    coins_awarded=int(coins),
+                    status='pending'
+                )
+
+                return Response({
+                    "pidx": pidx,
+                    "payment_url": payment_url
+                })
+            else:
+                return Response({
+                    "error": "Khalti Initiate failed",
+                    "details": response_data
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": f"Khalti initiation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyKhaltiPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        token = request.data.get('token')
-        amount = request.data.get('amount')
-        coins = request.data.get('coins')
+        pidx = request.data.get('pidx')
 
-        if not token or not amount or not coins:
-            return Response({"error": "Token, amount, and coins are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not pidx:
+            return Response({"error": "pidx is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         khalti_secret_key = getattr(settings, 'KHALTI_SECRET_KEY', '')
         if not khalti_secret_key:
             return Response({"error": "Khalti secret key not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         payload = {
-            "token": token,
-            "amount": amount
+            "pidx": pidx
         }
         headers = {
-            "Authorization": f"Key {khalti_secret_key}"
+            "Authorization": f"Key {khalti_secret_key}",
+            "Content-Type": "application/json"
         }
 
         try:
-            # Verify with Khalti API
-            response = requests.post("https://khalti.com/api/v2/payment/verify/", data=payload, headers=headers)
+            # Verify with Khalti Lookup API
+            response = requests.post("https://a.khalti.com/api/v2/epayment/lookup/", json=payload, headers=headers)
             response_data = response.json()
 
             if response.status_code == 200:
-                # Payment was successful, Khalti returns state containing "idx" (transaction ID)
-                khalti_idx = response_data.get('idx')
+                status_str = response_data.get('status')
+                
+                if status_str == 'Completed':
+                    with transaction.atomic():
+                        try:
+                            record = PaymentIntentRecord.objects.select_for_update().get(intent_id=pidx, status='pending')
+                            record.status = 'succeeded'
+                            record.save()
 
-                # Ensure it's not already processed
-                with transaction.atomic():
-                    # Check if we already have a successful transaction for this Khalti idx
-                    exists = PaymentIntentRecord.objects.filter(intent_id=khalti_idx, status='succeeded').exists()
-                    if exists:
-                        return Response({
-                            "coins": request.user.coins,
-                            "message": "Payment already processed."
-                        })
+                            user = record.user
+                            user.coins += record.coins_awarded
+                            user.save()
 
-                    # Record transaction and award coins
-                    PaymentIntentRecord.objects.create(
-                        user=request.user,
-                        intent_id=khalti_idx,
-                        amount=int(amount),
-                        currency='npr',  # Khalti is NPR
-                        coins_awarded=int(coins),
-                        status='succeeded'
-                    )
-
-                    user = request.user
-                    user.coins += int(coins)
-                    user.save()
-
+                            return Response({
+                                "coins": user.coins,
+                                "coins_awarded": record.coins_awarded,
+                                "message": f"Successfully awarded {record.coins_awarded} coins via Khalti!"
+                            })
+                        except PaymentIntentRecord.DoesNotExist:
+                            # Might be already processed or invalid
+                            exists = PaymentIntentRecord.objects.filter(intent_id=pidx, status='succeeded').exists()
+                            if exists:
+                                return Response({
+                                    "coins": request.user.coins,
+                                    "message": "Payment already processed."
+                                })
+                            return Response({"error": "Payment record not found or not pending."}, status=status.HTTP_400_BAD_REQUEST)
+                else:
                     return Response({
-                        "coins": user.coins,
-                        "coins_awarded": int(coins),
-                        "message": f"Successfully awarded {coins} coins via Khalti!"
-                    })
+                        "error": f"Payment has not completed yet. Status: {status_str}",
+                        "details": response_data
+                    }, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({
-                    "error": "Khalti Verification failed",
+                    "error": "Khalti Lookup failed",
                     "details": response_data
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({"error": f"Khalti verification error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+class KhaltiReturnView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        return HttpResponse("""
+            <html>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <body style='text-align:center; padding:50px; font-family:sans-serif;'>
+                <h2>Payment Processed</h2>
+                <p>Khalti has processed your request.</p>
+                <p>Please close this web browser window and tap <b>Verify Payment</b> inside the Chess App.</p>
+            </body>
+            </html>
+        """)
