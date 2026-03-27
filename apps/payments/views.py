@@ -280,13 +280,97 @@ class KhaltiReturnView(APIView):
     permission_classes = []
 
     def get(self, request):
-        return HttpResponse("""
+        pidx = request.GET.get('pidx')
+        status_param = request.GET.get('status')
+        
+        if not pidx:
+            return HttpResponse("Invalid request: pidx missing", status=400)
+
+        khalti_secret_key = getattr(settings, 'KHALTI_SECRET_KEY', '')
+        headers = {
+            "Authorization": f"Key {khalti_secret_key}",
+            "Content-Type": "application/json"
+        }
+
+        # 1. Verify with Khalti Lookup API (Automatic Verification)
+        try:
+            lookup_res = requests.post(
+                "https://a.khalti.com/api/v2/epayment/lookup/", 
+                json={"pidx": pidx}, 
+                headers=headers
+            )
+            lookup_data = lookup_res.json()
+            
+            is_success = False
+            message = "Payment failed or was cancelled."
+            coins_awarded = 0
+            username = "User"
+
+            if lookup_res.status_code == 200 and lookup_data.get('status') == 'Completed':
+                # 2. Award coins in database
+                with transaction.atomic():
+                    try:
+                        record = PaymentIntentRecord.objects.select_for_update().get(intent_id=pidx)
+                        username = record.user.username
+                        
+                        if record.status == 'pending':
+                            record.status = 'succeeded'
+                            record.save()
+
+                            user = record.user
+                            user.coins += record.coins_awarded
+                            user.save()
+                            
+                            is_success = True
+                            message = f"Successfully awarded {record.coins_awarded} coins!"
+                            coins_awarded = record.coins_awarded
+                        elif record.status == 'succeeded':
+                            is_success = True
+                            message = "Payment already processed successfully."
+                            coins_awarded = record.coins_awarded
+                    except PaymentIntentRecord.DoesNotExist:
+                        message = "Payment record not found."
+            else:
+                message = f"Payment status: {lookup_data.get('status', 'Unknown')}"
+
+        except Exception as e:
+            message = f"Error during verification: {str(e)}"
+            is_success = False
+
+        # HTML Response with Deep Link Button
+        bg_color = "#4CAF50" if is_success else "#f44336"
+        status_text = "Payment Successful!" if is_success else "Payment Issues"
+        
+        return HttpResponse(f"""
             <html>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <body style='text-align:center; padding:50px; font-family:sans-serif;'>
-                <h2>Payment Processed</h2>
-                <p>Khalti has processed your request.</p>
-                <p>Please close this web browser window and tap <b>Verify Payment</b> inside the Chess App.</p>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {{ font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f5f5f5; }}
+                    .card {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }}
+                    .icon {{ font-size: 64px; margin-bottom: 20px; }}
+                    h2 {{ color: #333; margin-bottom: 10px; }}
+                    p {{ color: #666; line-height: 1.5; }}
+                    .btn {{ 
+                        display: inline-block; margin-top: 30px; padding: 12px 24px; 
+                        background-color: {bg_color}; color: white; text-decoration: none; 
+                        border-radius: 8px; font-weight: bold; font-size: 16px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon">{'✅' if is_success else '❌'}</div>
+                    <h2>{status_text}</h2>
+                    <p>{message}</p>
+                    <a href="chessmanika://payment-callback?status={'success' if is_success else 'failure'}&pidx={pidx}" class="btn">Return to Chess App</a>
+                </div>
+                <script>
+                    // Auto-redirect attempt after 3 seconds
+                    setTimeout(function() {{
+                        window.location.href = "chessmanika://payment-callback?status={'success' if is_success else 'failure'}&pidx={pidx}";
+                    }}, 3000);
+                </script>
             </body>
             </html>
         """)
