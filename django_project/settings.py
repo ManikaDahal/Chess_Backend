@@ -52,6 +52,7 @@ ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [
     "https://chess-backend-ochre.vercel.app",
     "https://chess-websocket-dor6.onrender.com",
+    "https://*.hf.space",
     "https://uncoddled-charita-nonlymphatic.ngrok-free.dev",
 ]
 

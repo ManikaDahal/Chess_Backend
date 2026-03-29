@@ -1,27 +1,32 @@
 # Use an official Python runtime as a parent image
 FROM python:3.12-slim
 
-# Set environment variables to prevent Python from writing .pyc files
-# and to ensure stdout and stderr are unbuffered
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies (optional, but good for psycopg2 and other packages)
+# Create a non-root user (Hugging Face default is 1000)
+RUN useradd -m -u 1000 user
+
+# Install system dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install daphne==4.1.2 channels==4.1.0
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir daphne==4.1.2 channels==4.1.0
 
 # Copy the rest of the project files
-COPY . /app/
+COPY --chown=user:user . /app/
+
+# Switch to the non-root user
+USER user
 
 # Expose the port Hugging Face Spaces expects
 EXPOSE 7860
