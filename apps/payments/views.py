@@ -337,24 +337,44 @@ class KhaltiReturnView(APIView):
             message = f"Error during verification: {str(e)}"
             is_success = False
 
-        # HTML Response with Deep Link Button
+        # HTML Response with Deep Link Button and Auto-redirect
         bg_color = "#4CAF50" if is_success else "#f44336"
         status_text = "Payment Successful!" if is_success else "Payment Issues"
+        callback_url = f"chessmanika://payment-callback?status={'success' if is_success else 'failure'}&pidx={pidx}"
         
         return HttpResponse(f"""
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{status_text}</title>
                 <style>
-                    body {{ font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f5f5f5; }}
-                    .card {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }}
-                    .icon {{ font-size: 64px; margin-bottom: 20px; }}
-                    h2 {{ color: #333; margin-bottom: 10px; }}
-                    p {{ color: #666; line-height: 1.5; }}
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                        text-align: center; padding: 40px 20px; background-color: #0f172a; color: white;
+                        display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh;
+                    }}
+                    .card {{ 
+                        background: #1e293b; border-radius: 20px; padding: 40px; 
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-width: 450px; width: 100%;
+                        border: 1px solid #334155;
+                    }}
+                    .icon {{ font-size: 80px; margin-bottom: 20px; animation: scaleUp 0.5s ease-out; }}
+                    h2 {{ color: white; margin-bottom: 15px; font-size: 24px; }}
+                    p {{ color: #94a3b8; line-height: 1.6; font-size: 16px; margin: 0 0 30px 0; }}
                     .btn {{ 
-                        display: inline-block; margin-top: 30px; padding: 12px 24px; 
+                        display: block; width: 100%; padding: 15px 0; 
                         background-color: {bg_color}; color: white; text-decoration: none; 
-                        border-radius: 8px; font-weight: bold; font-size: 16px;
+                        border-radius: 12px; font-weight: bold; font-size: 18px;
+                        transition: transform 0.2s, opacity 0.2s;
+                        box-shadow: 0 4px 14px 0 rgba(0,0,0,0.3);
+                    }}
+                    .btn:active {{ transform: scale(0.98); opacity: 0.9; }}
+                    .loader {{ 
+                        margin-top: 25px; color: #64748b; font-size: 14px; 
+                    }}
+                    @keyframes scaleUp {{ 
+                        from {{ transform: scale(0.5); opacity: 0; }}
+                        to {{ transform: scale(1); opacity: 1; }}
                     }}
                 </style>
             </head>
@@ -363,13 +383,35 @@ class KhaltiReturnView(APIView):
                     <div class="icon">{'✅' if is_success else '❌'}</div>
                     <h2>{status_text}</h2>
                     <p>{message}</p>
-                    <a href="chessmanika://payment-callback?status={'success' if is_success else 'failure'}&pidx={pidx}" class="btn">Return to Chess App</a>
+                    
+                    <a href="{callback_url}" class="btn">Return to Chess App</a>
+                    
+                    <div class="loader" id="redirect-msg">
+                        Redirecting to app in <span id="timer">3</span>s...
+                    </div>
                 </div>
+
                 <script>
-                    // Auto-redirect attempt after 3 seconds
+                    var count = 3;
+                    var timer = document.getElementById('timer');
+                    var msg = document.getElementById('redirect-msg');
+                    
+                    var interval = setInterval(function() {{
+                        count--;
+                        timer.innerText = count;
+                        if (count <= 0) {{
+                            clearInterval(interval);
+                            msg.innerText = "If the app didn't open, tap the button above.";
+                        }}
+                    }}, 1000);
+
+                    // Immediate redirect attempt
+                    window.location.href = "{callback_url}";
+                    
+                    // Fallback redirect after 1 second (helps on some browsers)
                     setTimeout(function() {{
-                        window.location.href = "chessmanika://payment-callback?status={'success' if is_success else 'failure'}&pidx={pidx}";
-                    }}, 3000);
+                        window.location.href = "{callback_url}";
+                    }}, 1500);
                 </script>
             </body>
             </html>
