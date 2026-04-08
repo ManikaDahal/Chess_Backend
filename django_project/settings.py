@@ -16,6 +16,15 @@ import os
 import dj_database_url
 import sentry_sdk
 
+# Load .env file
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass
+
 # Initialize Sentry
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if SENTRY_DSN:
@@ -54,6 +63,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://chess-websocket-dor6.onrender.com",
     "https://*.hf.space",
     "https://uncoddled-charita-nonlymphatic.ngrok-free.dev",
+    "https://*.fly.dev",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
